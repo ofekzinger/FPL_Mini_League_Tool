@@ -1,0 +1,212 @@
+import requests
+import re
+
+# Define the base URL for FPL API
+BASE_URL = 'https://fantasy.premierleague.com/api/'
+GENERAL_INFO="bootstrap-static/"
+TEAM_IDS=0
+OWNERSHIP=1
+PLAYER_NAME=2
+TEAM_NAME=0
+VALUE_TO_PRINT=1
+GAMEWEEK=1
+TEAM_ENTRIES=0
+STARTING_GW=1
+BENCH_POS=11
+IN_PLAYERS_LIST=0
+IN_POINTS=1
+OUT_PLAYERS_LIST=2
+OUT_POINTS=3
+FINE=4
+
+
+# Function to make a GET request to the FPL API
+def fpl_api_get(endpoint):
+    url = f'{BASE_URL}{endpoint}'
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f'Error: {response.status_code}')
+        return None
+
+# Function to get info on a player
+def getPlayerInfo(playerID):
+    playerData=f"element-summary/{playerID}/"
+    data = fpl_api_get(playerData)
+    return data
+
+# Function to get info on a fpl team
+def getTeamInfo(teamID):
+    teamData=f"entry/{teamID}/"
+    data = fpl_api_get(teamData)
+    return data
+
+# Function to get info on a fpl team's gameweek
+def getTeamGWInfo(teamID,gw):
+    gwEntry=f"entry/{teamID}/event/{gw}/picks/"
+    data = fpl_api_get(gwEntry)
+    return data
+
+# Function to get info on a fpl team's transfers
+def getTeamTransfersInfo(teamID):
+    transfersData=f"entry/{teamID}/transfers/"
+    data = fpl_api_get(transfersData)
+    return data
+
+# Function to get info on a fpl league
+def getLeagueInfo(leagueID):
+    leagueData=f"leagues-classic/{leagueID}/standings/"
+    data = fpl_api_get(leagueData)
+    return data
+
+# Function to get Effective Ownership on players in the teams
+def getEO(gw):
+    EO={}
+    for team in teams:
+        teamID=team['entry']
+        data=getTeamGWInfo(teamID,gw)
+        for pick in data["picks"][:BENCH_POS]:
+            playerID=pick["element"]
+            if (playerID in EO.keys()):
+                EO[playerID][1]+=pick['multiplier']
+                EO[playerID][0].append(teamID)
+            elif (pick['multiplier']):
+                EO[playerID]=[[teamID],pick['multiplier']]
+    players=[]
+    for player in EO:
+        players.append((EO[player][TEAM_IDS], round(100*(EO[player][OWNERSHIP]/len(teams)),2), idToName(player)))
+    players=sorted(players,key=lambda x: x[OWNERSHIP],reverse=True)    
+    for player in players:
+        print (player[PLAYER_NAME],"{0}%".format(player[OWNERSHIP]))
+    return players
+def idToName(pid):
+    i=pid
+    while pid!=sgdata[i-1]['id']:
+        i-=1
+    return sgdata[i-1]['web_name']
+def getNumberOfSubs():
+    teamList=[]
+    for team in teams:
+        teamID=team['entry']
+        tdata=getTeamInfo(teamID)
+        teamList.append((tdata['name'],tdata['last_deadline_total_transfers']))
+    teamList=sorted(teamList,key=lambda x : x[1],reverse=True)
+    for p in teamList:
+        print (p[TEAM_NAME],p[VALUE_TO_PRINT])
+def bestBench(gw):
+    teamList=[]
+    for team in teams:
+        teamID=team['entry']
+        tdata=getTeamGWInfo(teamID,gw)
+        teamList.append((team['entry_name'],tdata['entry_history']['points_on_bench']))
+    teamList=sorted(teamList,key=lambda x : x[1],reverse=True)
+    for p in teamList:
+        print (p[TEAM_NAME],p[VALUE_TO_PRINT])
+    return teamList
+def bestBenchOverAll():
+    teamList=[]
+    for gw in range(1,currentGW):
+        tempList=bestBench(gw)
+        for tt in tempList:
+            teamList.append((tt,gw))
+    teamList=sorted(teamList,key=lambda x : x[TEAM_ENTRIES][VALUE_TO_PRINT],reverse=True)
+    for p in teamList:
+        print (p[TEAM_ENTRIES][TEAM_NAME],p[TEAM_ENTRIES][VALUE_TO_PRINT],"GW-{}".format(p[GAMEWEEK]))
+def bestTransfers():
+    transferList=[]
+    for team in teams:
+        teamID=team['entry']
+        print (f"Analyzing the Transfers of: {teamID}")
+        transfers=getTeamTransfersInfo(teamID)
+        costs={}
+        for gw in range(STARTING_GW,currentGW+1):
+            gwInfo=getTeamGWInfo(teamID,gw)
+            costs[gw]=gwInfo["entry_history"]["event_transfers_cost"]
+        oldgw=0
+        for transfer in transfers:
+            inPlayer=transfer['element_in']
+            outPlayer=transfer['element_out']
+            gw=transfer['event']
+            tempInfo = getPlayerInfo(inPlayer)
+            inPoints=tempInfo['history'][gw-1-(currentGW-len(tempInfo['history']))]['total_points']
+            tempInfo = getPlayerInfo(outPlayer)
+            outPoints=getPlayerInfo(outPlayer)['history'][gw-1-(currentGW-len(tempInfo['history']))]['total_points']
+            #print (costs,gw)
+            fine=0
+            if inPlayer in [p['element'] for p in getTeamGWInfo(teamID,gw)['picks'][BENCH_POS:]]:
+               inPoints=0
+               outPoints=0
+            if costs[gw]:
+                fine=4
+                costs[gw]-=4
+            #t.append((f"{team['entry_name']} GW{gw}: {sgdata[outPlayer-1]['web_name']} ({outPoints}) -> {sgdata[inPlayer-1]['web_name']} ({inPoints}) hit: {fine*-1} OVR: ",inPoints-outPoints-fine))
+            if oldgw!=gw:
+                transferList.append([[inPlayer],inPoints,[outPlayer],outPoints,fine,team['entry_name'],gw])
+            else:
+                transferList[-1]=[transferList[-1][IN_PLAYERS_LIST]+[inPlayer],transferList[-1][IN_POINTS]+inPoints,transferList[-1][OUT_PLAYERS_LIST]+[outPlayer],
+                                  transferList[-1][OUT_POINTS]+outPoints,transferList[-1][FINE]+fine,team['entry_name'],gw]
+            oldgw=gw
+            
+    #t=sorted(t,key=lambda x : x[1],reverse=True)
+    transferList=sorted(transferList,key=lambda x: x[IN_POINTS]-x[OUT_POINTS]-x[FINE], reverse=True)
+    
+    for p in transferList:
+        top=f""
+        top+=f"{p[5]} GW{p[6]}: "
+        top+=f"IN ({p[IN_POINTS]} points): "
+        for player in p[IN_PLAYERS_LIST]:
+            top+=f"{idToName(player)}, "
+        top=top[:-2]
+        top+=f"|OUT ({p[OUT_POINTS]} points): "
+        for player in p[OUT_PLAYERS_LIST]:
+            top+=f"{idToName(player)}, "
+        top=top[:-2]
+        top+=f"|hit: {p[FINE]*-1}|"
+        top+=f"OVR - {p[IN_POINTS]-p[OUT_POINTS]-p[FINE]}"
+        print (top)
+
+def getUninqePlayers(gw):
+    u={}
+    players=getEO(gw)
+    for player in players:
+        if len(player[TEAM_IDS])>1:
+            continue
+        else:
+            if player[TEAM_IDS][0] in u.keys():
+                u[player[TEAM_IDS][0]].append(player[PLAYER_NAME])
+            else:
+                u[player[TEAM_IDS][0]]=[player[PLAYER_NAME]]
+    for team in teams:
+        print (team['entry_name'],u[team['entry']],"\n")
+        
+def getCaptaincy(gw):
+    for team in teams:
+        data=getTeamGWInfo(team["entry"],gw)
+        for player in data["picks"]:
+            if player["is_captain"]:
+                print (team["entry_name"], idToName(player["element"]))
+
+def main():
+    pass
+
+if __name__ == "__main__":
+
+#initial info gathering
+#--------------------------------------------------#
+    gdata=fpl_api_get(GENERAL_INFO)
+    sgdata=sorted(gdata["elements"],key=lambda x: x['id'])
+    i=0
+    while gdata['events'][i]:
+        if gdata['events'][i]['is_next']:
+            currentGW=i
+            break
+        i+=1
+        
+    leagueID="19528"
+    ldata=getLeagueInfo(leagueID)
+    teams=ldata['standings']['results']
+
+#---------------------------------------------------#
+    main()
