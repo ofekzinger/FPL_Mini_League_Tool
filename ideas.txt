@@ -1,3 +1,4 @@
+DONE:
 EO
 Total Transfers Made All Time
 Best Bench
@@ -5,3 +6,8 @@ Best Bench All Time
 Best Transfers All Time - Entire GWs
 Unique Players per GW
 Captains
+---------------------------------------------
+TODO:
+Unluckiest Manager - worst Xgi to gi
+narrative to suggestions - how to benefit from created narratives
+who to support - what results and performenses benefits the FPL team the most in the mini league
