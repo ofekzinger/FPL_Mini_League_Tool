@@ -249,24 +249,28 @@ def calcXPoints(pid, gw, is_captain):
     return (basePoints + additional_points) * (1 + is_captain)
 
 
-def unluckiestPlayer(gw):
+def luckiestPlayer():
     points = []
     for team in teams:
         teamID = team['entry']
         print (teamID)
-        data = getTeamGWInfo(teamID, gw)
         temp_total = 0
-        for pick in data["picks"][:BENCH_POS]:
-            pid = pick["element"]
-            temp_total += calcXPoints(pid, gw, pick["is_captain"])
-        points.append([team["entry_name"], team["event_total"], temp_total])
-    points = sorted(points, key=lambda x: x[1]-x[2], reverse=False)
+        rPoints = 0
+        for gw in range(STARTING_GW, currentGW + 1):
+            data = getTeamGWInfo(teamID, gw)
+            for pick in data["picks"][:BENCH_POS]:
+                pid = pick["element"]
+                temp_total += calcXPoints(pid, gw, pick["is_captain"])
+            rPoints += data["entry_history"]["points"] - data["entry_history"]["event_transfers_cost"]
+            temp_total -= data["entry_history"]["event_transfers_cost"]
+        points.append([team["entry_name"], rPoints, temp_total])
+    points = sorted(points, key=lambda x: x[1]-x[2], reverse=True)
     for p in points:
-        print(p[0], p[1], p[2], p[1]-p[2])
+        print(f"{p[0]} Scored {p[1]} Points while his Xpoints is {p[2]} Lucky Points: {p[1]-p[2]}\n")
 
 
 def main():
-    unluckiestPlayer(8)
+    luckiestPlayer()
 
 
 if __name__ == "__main__":
