@@ -208,7 +208,10 @@ def getUninqePlayers(gw):
             else:
                 u[player[TEAM_IDS][0]] = [player[PLAYER_NAME]]
     for team in teams:
-        print(team['entry_name'], u[team['entry']], "\n")
+        if team['entry'] in u.keys():
+            print(team['entry_name'], u[team['entry']], "\n")
+        else:
+            print(team['entry_name'], "[]")
 
 
 def getCaptaincy(gw):
@@ -270,7 +273,9 @@ def luckiestPlayer():
 
 
 def main():
-    luckiestPlayer()
+    getCaptaincy(9)
+    getUninqePlayers(9)
+
 
 
 if __name__ == "__main__":
