@@ -252,14 +252,14 @@ def calcXPoints(pid, gw, is_captain):
     return (basePoints + additional_points) * (1 + is_captain)
 
 
-def luckiestPlayer():
+def luckiestPlayer(startingGW=STARTING_GW):
     points = []
     for team in teams:
         teamID = team['entry']
         print (teamID)
         temp_total = 0
         rPoints = 0
-        for gw in range(STARTING_GW, currentGW + 1):
+        for gw in range(startingGW, currentGW + 1):
             data = getTeamGWInfo(teamID, gw)
             for pick in data["picks"][:BENCH_POS]:
                 pid = pick["element"]
@@ -273,8 +273,9 @@ def luckiestPlayer():
 
 
 def main():
-    getCaptaincy(9)
-    getUninqePlayers(9)
+    #getCaptaincy(9)
+    #getUninqePlayers(9)
+    luckiestPlayer(9)
 
 
 
