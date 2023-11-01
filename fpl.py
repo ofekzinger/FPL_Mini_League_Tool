@@ -164,12 +164,8 @@ def bestTransfers(startingGW=STARTING_GW):
             inPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points'] * multiplier
             tempInfo = getPlayerInfo(outPlayer)
             outPoints = getPlayerInfo(outPlayer)['history'][gw - 1 - (currentGW - len(tempInfo['history']))][
-                'total_points'] * multiplier
-            # print (costs,gw)
+                            'total_points'] * multiplier
             fine = 0
-            #if inPlayer in [p['element'] for p in picks[BENCH_POS:]]:
-            #    inPoints = 0
-            #    outPoints = 0
             if costs[gw]:
                 fine = 4
                 costs[gw] -= 4
@@ -228,6 +224,14 @@ def getCaptaincy(gw):
         for player in data["picks"]:
             if player["is_captain"]:
                 print(team["entry_name"], idToName(player["element"]))
+                return player["element"]
+
+
+def getCaptain(teamID, gw):
+    data = getTeamGWInfo(teamID, gw)
+    for player in data["picks"]:
+        if player["is_captain"]:
+            return player["element"]
 
 
 def calcXPoints(pid, gw, is_captain):
@@ -264,7 +268,7 @@ def luckiestPlayer(startingGW=STARTING_GW):
     points = []
     for team in teams:
         teamID = team['entry']
-        print(teamID)
+        print(f"Analyzing the Points of: {teamID}")
         temp_total = 0
         rPoints = 0
         for gw in range(startingGW, currentGW + 1):
@@ -280,11 +284,57 @@ def luckiestPlayer(startingGW=STARTING_GW):
         print(f"{p[0]} Scored {p[1]} Points while his Xpoints is {p[2]} Lucky Points: {p[1] - p[2]}\n")
 
 
+def captaincyAccuracy():
+    badList = []
+    for team in teams:
+        teamID = team["entry"]
+        print(f"Analyzing the Captains of: {teamID}")
+        badCaptains = 0
+        for gw in range(STARTING_GW, currentGW + 1):
+            gwInfo = getTeamGWInfo(teamID, gw)
+            tempInfo = getPlayerInfo(getCaptain(teamID, gw))
+            captainPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+            for pick in gwInfo["picks"]:
+                tempInfo = getPlayerInfo(pick["element"])
+                tempPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+                if tempPoints > captainPoints:
+                    badCaptains += 1
+                    break
+        badList.append([team["entry_name"], currentGW - badCaptains])
+    badList = sorted(badList, key=lambda x: x[1], reverse=True)
+    for team in badList:
+        print(f" {team[0]} captain accuracy is {team[1]}/{currentGW}\n")
+
+def captaincyLoses():
+    badList = []
+    for team in teams:
+        teamID = team["entry"]
+        print(f"Analyzing the Captains of: {teamID}")
+        loses = 0
+        for gw in range(STARTING_GW, currentGW + 1):
+            gwInfo = getTeamGWInfo(teamID, gw)
+            best = 0
+            #tempInfo = getPlayerInfo(getCaptain(teamID, gw))
+            #captainPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+            for pick in gwInfo["picks"]:
+                tempInfo = getPlayerInfo(pick["element"])
+                tempPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+                if pick["is_captain"]:
+                    captainPoints = tempPoints
+                if tempPoints > best:
+                    best = tempPoints
+            loses += (best - captainPoints) * 2
+        badList.append([team["entry_name"], loses])
+    badList = sorted(badList, key=lambda x: x[1], reverse=True)
+    for team in badList:
+        print(f" {team[0]} captain inaccuracy lost him {team[1]} points\n")
+
 def main():
     # getCaptaincy(10)
     # getUninqePlayers(10)
     # luckiestPlayer(9)
-    bestTransfers(10)
+    # bestTransfers(10)
+    captaincyLoses()
 
 
 if __name__ == "__main__":
