@@ -158,16 +158,18 @@ def bestTransfers(startingGW=STARTING_GW):
                 break
             if costs[gw] == 'wildcard':
                 continue
+            picks = getTeamGWInfo(teamID, gw)['picks']
+            multiplier = [pick["multiplier"] for pick in picks if pick["element"] == inPlayer][0]
             tempInfo = getPlayerInfo(inPlayer)
-            inPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+            inPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points'] * multiplier
             tempInfo = getPlayerInfo(outPlayer)
             outPoints = getPlayerInfo(outPlayer)['history'][gw - 1 - (currentGW - len(tempInfo['history']))][
-                'total_points']
+                'total_points'] * multiplier
             # print (costs,gw)
             fine = 0
-            if inPlayer in [p['element'] for p in getTeamGWInfo(teamID, gw)['picks'][BENCH_POS:]]:
-                inPoints = 0
-                outPoints = 0
+            #if inPlayer in [p['element'] for p in picks[BENCH_POS:]]:
+            #    inPoints = 0
+            #    outPoints = 0
             if costs[gw]:
                 fine = 4
                 costs[gw] -= 4
@@ -262,7 +264,7 @@ def luckiestPlayer(startingGW=STARTING_GW):
     points = []
     for team in teams:
         teamID = team['entry']
-        print (teamID)
+        print(teamID)
         temp_total = 0
         rPoints = 0
         for gw in range(startingGW, currentGW + 1):
@@ -273,15 +275,15 @@ def luckiestPlayer(startingGW=STARTING_GW):
             rPoints += data["entry_history"]["points"] - data["entry_history"]["event_transfers_cost"]
             temp_total -= data["entry_history"]["event_transfers_cost"]
         points.append([team["entry_name"], rPoints, temp_total])
-    points = sorted(points, key=lambda x: x[1]-x[2], reverse=True)
+    points = sorted(points, key=lambda x: x[1] - x[2], reverse=True)
     for p in points:
-        print(f"{p[0]} Scored {p[1]} Points while his Xpoints is {p[2]} Lucky Points: {p[1]-p[2]}\n")
+        print(f"{p[0]} Scored {p[1]} Points while his Xpoints is {p[2]} Lucky Points: {p[1] - p[2]}\n")
 
 
 def main():
-    #getCaptaincy(10)
-    #getUninqePlayers(10)
-    #luckiestPlayer(9)
+    # getCaptaincy(10)
+    # getUninqePlayers(10)
+    # luckiestPlayer(9)
     bestTransfers(10)
 
 
