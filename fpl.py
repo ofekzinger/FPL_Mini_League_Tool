@@ -137,21 +137,27 @@ def bestBenchOverAll():
         print(p[TEAM_ENTRIES][TEAM_NAME], p[TEAM_ENTRIES][VALUE_TO_PRINT], "GW-{}".format(p[GAMEWEEK]))
 
 
-def bestTransfers():
+def bestTransfers(startingGW=STARTING_GW):
     transferList = []
     for team in teams:
         teamID = team['entry']
         print(f"Analyzing the Transfers of: {teamID}")
         transfers = getTeamTransfersInfo(teamID)
         costs = {}
-        for gw in range(STARTING_GW, currentGW + 1):
+        for gw in range(startingGW, currentGW + 1):
             gwInfo = getTeamGWInfo(teamID, gw)
             costs[gw] = gwInfo["entry_history"]["event_transfers_cost"]
+            if gwInfo["active_chip"] == 'wildcard':
+                costs[gw] = 'wildcard'
         oldgw = 0
         for transfer in transfers:
             inPlayer = transfer['element_in']
             outPlayer = transfer['element_out']
             gw = transfer['event']
+            if gw < startingGW:
+                break
+            if costs[gw] == 'wildcard':
+                continue
             tempInfo = getPlayerInfo(inPlayer)
             inPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
             tempInfo = getPlayerInfo(outPlayer)
@@ -273,10 +279,10 @@ def luckiestPlayer(startingGW=STARTING_GW):
 
 
 def main():
-    #getCaptaincy(9)
-    #getUninqePlayers(9)
-    luckiestPlayer(9)
-
+    #getCaptaincy(10)
+    #getUninqePlayers(10)
+    #luckiestPlayer(9)
+    bestTransfers(10)
 
 
 if __name__ == "__main__":
