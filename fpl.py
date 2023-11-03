@@ -224,7 +224,6 @@ def getCaptaincy(gw):
         for player in data["picks"]:
             if player["is_captain"]:
                 print(team["entry_name"], idToName(player["element"]))
-                return player["element"]
 
 
 def getCaptain(teamID, gw):
@@ -329,12 +328,29 @@ def captaincyLoses():
     for team in badList:
         print(f" {team[0]} captain inaccuracy lost him {team[1]} points\n")
 
+def teamRepresentation(gw):
+    teamList = {}
+    for pt in gdata["teams"]:
+        teamList[pt["name"]] = 0
+    for team in teams:
+        teamID = team["entry"]
+        gwInfo = getTeamGWInfo(teamID, gw)
+        for pick in gwInfo["picks"]:
+            playerID = pick["element"]
+            playerInfo = idToPStruct(playerID)
+            pTeam = gdata["teams"][playerInfo["team"] - 1]["name"]
+            if pTeam in teamList.keys():
+                teamList[pTeam] += 1
+    teamsList = sorted(teamList.items(), key=lambda x: x[1], reverse=True)
+    for t in teamsList:
+        print(f"{t[0]} has {round(t[1]*100/(len(teams)*15),ndigits=2)}% of the players in GW{gw}\n ")
 def main():
     # getCaptaincy(10)
     # getUninqePlayers(10)
     # luckiestPlayer(9)
     # bestTransfers(10)
-    captaincyLoses()
+    # captaincyLoses()
+    teamRepresentation(10)
 
 
 if __name__ == "__main__":
