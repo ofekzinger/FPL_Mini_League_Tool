@@ -344,14 +344,72 @@ def teamRepresentation(gw):
     teamsList = sorted(teamList.items(), key=lambda x: x[1], reverse=True)
     for t in teamsList:
         print(f"{t[0]} has {round(t[1]*100/(len(teams)*15),ndigits=2)}% of the players in GW{gw}\n ")
+
+def bestWildcard():
+    transferList = []
+    for team in teams:
+        teamID = team['entry']
+        GWs=[]
+        print(f"Analyzing the Transfers of: {teamID}")
+        for gw in range(currentGW, STARTING_GW, -1):
+            gwInfo = getTeamGWInfo(teamID, gw)
+            if gwInfo["active_chip"] == 'wildcard':
+                GWs.append(gw)
+        if GWs:
+            transfers = getTeamTransfersInfo(teamID)
+        else:
+            continue
+        oldgw = 0
+        for transfer in transfers:
+            gw = transfer['event']
+            if not gw in GWs:
+                continue
+            inPlayer = transfer['element_in']
+            outPlayer = transfer['element_out']
+            picks = getTeamGWInfo(teamID, gw)['picks']
+            multipliers = [pick["multiplier"] for pick in picks if pick["element"] == inPlayer]
+            if multipliers:
+                multiplier = multipliers[0]
+            else:
+                continue
+            tempInfo = getPlayerInfo(inPlayer)
+            inPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points'] * multiplier
+            tempInfo = getPlayerInfo(outPlayer)
+            outPoints = getPlayerInfo(outPlayer)['history'][gw - 1 - (currentGW - len(tempInfo['history']))][
+                            'total_points'] * multiplier
+            fine = 0
+            if oldgw != gw:
+                transferList.append([[inPlayer], inPoints, [outPlayer], outPoints, fine, team['entry_name'], gw])
+            else:
+                transferList[-1] = [transferList[-1][IN_PLAYERS_LIST] + [inPlayer],
+                                    transferList[-1][IN_POINTS] + inPoints,
+                                    transferList[-1][OUT_PLAYERS_LIST] + [outPlayer],
+                                    transferList[-1][OUT_POINTS] + outPoints, transferList[-1][FINE] + fine,
+                                    team['entry_name'], gw]
+            oldgw = gw
+    transferList = sorted(transferList, key=lambda x: x[IN_POINTS] - x[OUT_POINTS], reverse=True)
+    for p in transferList:
+        top = f""
+        top += f"{p[5]} GW{p[6]}: "
+        top += f"IN ({p[IN_POINTS]} points): "
+        for player in p[IN_PLAYERS_LIST]:
+            top += f"{idToName(player)}, "
+        top = top[:-2]
+        top += f"|OUT ({p[OUT_POINTS]} points): "
+        for player in p[OUT_PLAYERS_LIST]:
+            top += f"{idToName(player)}, "
+        top = top[:-2]
+        top += f"|OVR - {p[IN_POINTS] - p[OUT_POINTS] - p[FINE]}"
+        print(top)
+
 def main():
     # getCaptaincy(10)
     # getUninqePlayers(10)
     # luckiestPlayer(9)
     # bestTransfers(10)
     # captaincyLoses()
-    teamRepresentation(10)
-
+    #teamRepresentation(10)
+    bestWildcard()
 
 if __name__ == "__main__":
 
