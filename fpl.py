@@ -422,8 +422,12 @@ def managerPointsAllocation(teamID):
     totalPoints = sum(teamDict.values())
     for t in teamList:
         print(f"{t[0]} has {round(t[1] * 100 / totalPoints, ndigits=2)}% of {teamIDtoName(teamID)} points \n")
-    return teamList
+    #return teamList
 
+def pointsAllocation():
+    for team in teams:
+        managerPointsAllocation(team['entry'])
+        print("-----------------------------------------------------------")
 
 def main():
     # getCaptaincy(10)
@@ -435,8 +439,7 @@ def main():
     #captaincyLoses()
     #teamRepresentation(13)
     #bestWildcard()
-    a=managerPointsAllocation(50113)
-    print (a)
+    pointsAllocation()
 if __name__ == "__main__":
 
     # initial info gathering
