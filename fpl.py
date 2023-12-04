@@ -95,7 +95,10 @@ def idToName(pid):
         index -= 1
     return sgdata[index - 1]["web_name"]
 
-
+def teamIDtoName(teamID):
+    for team in teams:
+        if team["entry"] == teamID:
+            return team["entry_name"]
 def idToPStruct(pid):
     index = pid
     while pid != sgdata[index - 1]["id"]:
@@ -402,15 +405,38 @@ def bestWildcard():
         top += f"|OVR - {p[IN_POINTS] - p[OUT_POINTS] - p[FINE]}"
         print(top)
 
+def managerPointsAllocation(teamID):
+    teamDict = {}
+    for pt in gdata["teams"]:
+        teamDict[pt["name"]] = 0
+    for gw in range(STARTING_GW,currentGW):
+        gwInfo = getTeamGWInfo(teamID, gw)
+        for pick in gwInfo["picks"]:
+            playerID = pick["element"]
+            playerInfo = idToPStruct(playerID)
+            tempInfo = getPlayerInfo(playerID)
+            pTeam = gdata["teams"][playerInfo["team"] - 1]["name"]
+            if pTeam in teamDict.keys():
+                teamDict[pTeam] += pick["multiplier"] * tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+    teamList = sorted(teamDict.items(), key=lambda x: x[1], reverse=True)
+    totalPoints = sum(teamDict.values())
+    for t in teamList:
+        print(f"{t[0]} has {round(t[1] * 100 / totalPoints, ndigits=2)}% of {teamIDtoName(teamID)} points \n")
+    return teamList
+
+
 def main():
     # getCaptaincy(10)
-    # getUninqePlayers(10)
-    # luckiestPlayer(9)
-    # bestTransfers(10)
-    # captaincyLoses()
-    #teamRepresentation(10)
-    bestWildcard()
-
+    #luckiestPlayer()
+    #bestBench(11)
+    #getUninqePlayers(13)
+    #bestBenchOverAll()
+    #bestTransfers()
+    #captaincyLoses()
+    #teamRepresentation(13)
+    #bestWildcard()
+    a=managerPointsAllocation(50113)
+    print (a)
 if __name__ == "__main__":
 
     # initial info gathering
