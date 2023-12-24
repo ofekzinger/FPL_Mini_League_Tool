@@ -95,10 +95,16 @@ def idToName(pid):
         index -= 1
     return sgdata[index - 1]["web_name"]
 
+
 def teamIDtoName(teamID):
     for team in teams:
         if team["entry"] == teamID:
             return team["entry_name"]
+def teamIDtoStruct(teamID):
+    for team in teams:
+        if team["entry"] == teamID:
+            return team
+
 def idToPStruct(pid):
     index = pid
     while pid != sgdata[index - 1]["id"]:
@@ -140,9 +146,11 @@ def bestBenchOverAll():
         print(p[TEAM_ENTRIES][TEAM_NAME], p[TEAM_ENTRIES][VALUE_TO_PRINT], "GW-{}".format(p[GAMEWEEK]))
 
 
-def bestTransfers(startingGW=STARTING_GW):
+def bestTransfers(startingGW=STARTING_GW, useTeams=-1):
     transferList = []
-    for team in teams:
+    if not useTeams:
+        useTeams = teams
+    for team in useTeams:
         teamID = team['entry']
         print(f"Analyzing the Transfers of: {teamID}")
         transfers = getTeamTransfersInfo(teamID)
@@ -219,6 +227,7 @@ def getUninqePlayers(gw):
             print(team['entry_name'], u[team['entry']], "\n")
         else:
             print(team['entry_name'], "[]")
+    return u
 
 
 def getCaptaincy(gw):
@@ -307,6 +316,7 @@ def captaincyAccuracy():
     for team in badList:
         print(f" {team[0]} captain accuracy is {team[1]}/{currentGW}\n")
 
+
 def captaincyLoses():
     badList = []
     for team in teams:
@@ -316,8 +326,8 @@ def captaincyLoses():
         for gw in range(STARTING_GW, currentGW + 1):
             gwInfo = getTeamGWInfo(teamID, gw)
             best = 0
-            #tempInfo = getPlayerInfo(getCaptain(teamID, gw))
-            #captainPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+            # tempInfo = getPlayerInfo(getCaptain(teamID, gw))
+            # captainPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
             for pick in gwInfo["picks"]:
                 tempInfo = getPlayerInfo(pick["element"])
                 tempPoints = tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
@@ -330,6 +340,7 @@ def captaincyLoses():
     badList = sorted(badList, key=lambda x: x[1], reverse=True)
     for team in badList:
         print(f" {team[0]} captain inaccuracy lost him {team[1]} points\n")
+
 
 def teamRepresentation(gw):
     teamList = {}
@@ -346,13 +357,14 @@ def teamRepresentation(gw):
                 teamList[pTeam] += 1
     teamsList = sorted(teamList.items(), key=lambda x: x[1], reverse=True)
     for t in teamsList:
-        print(f"{t[0]} has {round(t[1]*100/(len(teams)*15),ndigits=2)}% of the players in GW{gw}\n ")
+        print(f"{t[0]} has {round(t[1] * 100 / (len(teams) * 15), ndigits=2)}% of the players in GW{gw}\n ")
+
 
 def bestWildcard():
     transferList = []
     for team in teams:
         teamID = team['entry']
-        GWs=[]
+        GWs = []
         print(f"Analyzing the Transfers of: {teamID}")
         for gw in range(currentGW, STARTING_GW, -1):
             gwInfo = getTeamGWInfo(teamID, gw)
@@ -405,11 +417,12 @@ def bestWildcard():
         top += f"|OVR - {p[IN_POINTS] - p[OUT_POINTS] - p[FINE]}"
         print(top)
 
+
 def managerPointsAllocation(teamID):
     teamDict = {}
     for pt in gdata["teams"]:
         teamDict[pt["name"]] = 0
-    for gw in range(STARTING_GW,currentGW):
+    for gw in range(STARTING_GW, currentGW):
         gwInfo = getTeamGWInfo(teamID, gw)
         for pick in gwInfo["picks"]:
             playerID = pick["element"]
@@ -417,29 +430,147 @@ def managerPointsAllocation(teamID):
             tempInfo = getPlayerInfo(playerID)
             pTeam = gdata["teams"][playerInfo["team"] - 1]["name"]
             if pTeam in teamDict.keys():
-                teamDict[pTeam] += pick["multiplier"] * tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
+                teamDict[pTeam] += pick["multiplier"] * \
+                                   tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))]['total_points']
     teamList = sorted(teamDict.items(), key=lambda x: x[1], reverse=True)
     totalPoints = sum(teamDict.values())
     for t in teamList:
         print(f"{t[0]} has {round(t[1] * 100 / totalPoints, ndigits=2)}% of {teamIDtoName(teamID)} points \n")
-    #return teamList
+    return teamList
+
+
+def managerAllstars(teamID):
+    teamDict = {}
+    for gw in range(STARTING_GW, currentGW):
+        gwInfo = getTeamGWInfo(teamID, gw)
+        for pick in gwInfo["picks"]:
+            playerID = pick["element"]
+            playerInfo = idToPStruct(playerID)
+            pos = playerInfo["element_type"]
+            tempInfo = getPlayerInfo(playerID)
+            # pTeam = gdata["teams"][playerInfo["team"] - 1]["name"]
+            if not (playerID in teamDict.keys()):
+                teamDict[playerID] = [pick["multiplier"] * \
+                                       tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))] \
+                                           ['total_points'], pos]
+            else:
+                teamDict[playerID] =[pick["multiplier"] * \
+                                       tempInfo['history'][gw - 1 - (currentGW - len(tempInfo['history']))] \
+                                           ['total_points'] + teamDict[playerID][0], pos]
+    teamList = sorted(teamDict.items(), key=lambda x: x[1][0], reverse=True)
+    # totalPoints = sum(teamDict.values())
+    allstars = {1: [], 2: [], 3: [], 4: []}
+    for t in teamList:
+        # print(f"{t[0]} has {round(t[1] * 100 / totalPoints, ndigits=2)}% of {teamIDtoName(teamID)} points \n")
+        if (len(allstars[1]) + len(allstars[2]) +len(allstars[3]) + len(allstars[4])) == 15:
+            break
+        tmpPos = t[1][1]
+        match tmpPos:
+            case 1:
+                if len(allstars[tmpPos]) < 2:
+                    allstars[tmpPos].append(t)
+                else:
+                    continue
+            case 2:
+                if len(allstars[tmpPos]) < 5:
+                    allstars[tmpPos].append(t)
+                else:
+                    continue
+            case 3:
+                if len(allstars[tmpPos]) < 5:
+                    allstars[tmpPos].append(t)
+                else:
+                    continue
+            case 4:
+                if len(allstars[tmpPos]) < 3:
+                    allstars[tmpPos].append(t)
+                else:
+                    continue
+    return allstars
+
 
 def pointsAllocation():
     for team in teams:
         managerPointsAllocation(team['entry'])
         print("-----------------------------------------------------------")
 
+
+def mostPopularCaptain(teamID):
+    captains = {}
+    for gw in range(STARTING_GW, currentGW):
+        tempCaptain = getCaptain(teamID, gw)
+        if tempCaptain in captains.keys():
+            captains[tempCaptain] += 1
+        else:
+            captains[tempCaptain] = 1
+    return idToName(max(captains, key=captains.get))
+
+
+def bestBenchByManager(teamID):
+    benchPoints = []
+    for gw in range(STARTING_GW, currentGW):
+        tdata = getTeamGWInfo(teamID, gw)
+        benchPoints.append(tdata['entry_history']['points_on_bench'])
+    maxPoints = max(benchPoints)
+    return f"{maxPoints} in GW{benchPoints.index(maxPoints)}"
+
+
+def pointsByManager(teamID):
+    for gw in range(STARTING_GW, currentGW):
+        tdata = getTeamGWInfo(teamID, gw)
+        print (tdata['entry_history']['points'])
+
+def worldAvg():
+    for event in gdata["events"]:
+        print (event["average_entry_score"])
+
+def leagueAvg():
+    for gw in range(STARTING_GW, currentGW):
+        gwPoints = 0
+        for team in teams:
+            teamID = team["entry"]
+            tdata = getTeamGWInfo(teamID, gw)
+            gwPoints += tdata['entry_history']['points']
+        print (round(gwPoints/len(teams)))
+
+def managerProfile(teamID):
+    #print (mostPopularCaptain(teamID))
+    #print (bestBenchByManager(teamID))
+    # pAlloc = managerPointsAllocation(teamID)
+    #bestTransfers(useTeams=[teamIDtoStruct(teamID)])
+    """allStars = managerAllstars(teamID)
+    for pos in allStars:
+        for p in allStars[pos]:
+            print (idToName(p[0]),p[1][0])
+    """
+    #pointsByManager(teamID)
+    #worldAvg()
+    leagueAvg()
+def mostUniqueManager():
+    pass
+
+
+def generalSeasonStats():
+    mostUniqueManager()
+    getNumberOfSubs()
+    bestTransfers()
+    bestWildcard()
+
+
 def main():
-    # getCaptaincy(10)
-    #luckiestPlayer()
-    #bestBench(11)
-    #getUninqePlayers(13)
-    #bestBenchOverAll()
-    #bestTransfers()
-    #captaincyLoses()
-    #teamRepresentation(13)
-    #bestWildcard()
-    pointsAllocation()
+    managerProfile(teams[0]["entry"])
+    # getCaptaincy(15)
+    # luckiestPlayer()
+    # bestBench(11)
+    # getUninqePlayers(15)
+    # bestBenchOverAll()
+    # bestTransfers()
+    # captaincyLoses()
+    # teamRepresentation(13)
+    # bestWildcard()
+    # pointsAllocation()
+
+
 if __name__ == "__main__":
 
     # initial info gathering
